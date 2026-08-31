@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seamforge3d"
+version = "0.1.0"
+description = "Topology-aware 3D weld seam field learning from point clouds"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+  "numpy==1.26.4",
+  "scipy>=1.12,<2",
+  "PyYAML>=6",
+  "matplotlib>=3.8",
+  "trimesh>=4.4",
+  "open3d>=0.18,<0.20",
+  "tqdm>=4.66",
+  "tensorboard>=2.16",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+

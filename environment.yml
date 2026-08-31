@@ -1,0 +1,38 @@
+name: seamforge3d
+channels:
+  - pytorch
+  - nvidia/label/cuda-12.4.1
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - gcc=13.2
+  - gxx=13.2
+  - ninja
+  - cuda
+  - cudnn
+  - pytorch=2.5.0
+  - torchvision=0.20.0
+  - torchaudio=2.5.0
+  - pytorch-cuda=12.4
+  - numpy=1.26.4
+  - scipy
+  - pip:
+      - torch-scatter --find-links https://data.pyg.org/whl/torch-2.5.0+cu124.html
+      - spconv-cu124
+      - flash-attn==2.7.4.post1 --no-build-isolation
+      - open3d>=0.18,<0.20
+      - trimesh>=4.4
+      - matplotlib>=3.8
+      - PyYAML>=6
+      - tqdm>=4.66
+      - tensorboard>=2.16
+      - huggingface-hub>=0.27
+      - timm>=1.0
+      - addict>=2.4
+      - psutil>=6
+      - einops>=0.8
+      - pytest>=8
+

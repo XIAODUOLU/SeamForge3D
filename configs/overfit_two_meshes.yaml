@@ -1,0 +1,62 @@
+_base_: base.yaml
+seed: 7
+data:
+  root: outputs/overfit_dataset
+  dynamic: false
+  train_scenes: 8
+  val_scenes: 2
+  num_views: [12, 16]
+  image_width: 320
+  image_height: 240
+  voxel_size: 0.003
+  seam_sigma: 0.004
+  supervision_radius: 0.012
+  xyz_noise: [0.0001, 0.0003]
+  normal_noise_deg: [0.5, 1.5]
+  grazing_dropout_strength: 0.20
+  edge_noise: 0.0004
+  flying_point_probability: 0.002
+  pose_translation_noise: 0.0002
+  pose_rotation_noise_deg: 0.1
+  point_dropout: [0.0, 0.05]
+  patch_dropout_probability: 0.0
+  normal_sign_flip_probability: 0.0
+model:
+  backbone:
+    name: randlanet
+    randlanet:
+      feature_channels: 64
+      num_neighbors: 16
+      num_layers: 4
+      subsampling_ratio: [4, 4, 4, 4]
+      encoder_channels: [16, 64, 128, 256]
+      checkpoint: null
+      use_batch_stats_in_eval: true
+      inference_votes: 1
+    utonia:
+      pretrained: null
+      checkpoint: weights/utonia.pth
+      freeze_encoder: false
+      use_flash_attention: true
+      decoder_channels: [96, 96, 192, 384]
+  head_hidden_channels: 128
+  part_embedding_dim: 8
+  use_endpoint_head: true
+  use_junction_head: true
+train:
+  epochs: 300
+  batch_size: 1
+  workers: 0
+  learning_rate: 0.0005
+  backbone_learning_rate: 0.00005
+  weight_decay: 0.0001
+  grad_clip: 1.0
+  amp: true
+  bn_calibration_batches: 0
+  output_dir: outputs/overfit_train
+  resume: null
+postprocess:
+  # Deliberately high for the memorization audit: only the narrow heat-field
+  # ridge is sent to topology recovery. Production thresholds are calibrated
+  # on the validation set.
+  seam_probability_threshold: 0.95
