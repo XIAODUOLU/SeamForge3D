@@ -1,0 +1,47 @@
+_base_: base.yaml
+seed: 20260901
+data:
+  root: outputs/procedural_dataset
+  dynamic: false
+  train_scenes: 512
+  val_scenes: 64
+  test_scenes: 64
+  assembly_generator: procedural
+  assembly_families: [t_joint, triangular_prism, cylinder, cone, i_beam, l_angle, box]
+  balanced_family_sampling: true
+  seam_samples: 321
+  # mixed randomly emits a true single-view scan or a sparse multi-view fusion.
+  view_mode: mixed
+  single_view_probability: 0.40
+  num_views: [2, 8]
+  azimuth_deg: [0.0, 360.0]
+  elevation_deg: [15.0, 75.0]
+  camera_distance: [0.25, 0.46]
+  fov_deg: 60.0
+  assembly_rotation_mode: full
+  assembly_max_translation: 0.04
+  image_width: 320
+  image_height: 240
+  voxel_size: 0.003
+  seam_sigma: 0.004
+  supervision_radius: 0.012
+  # Remove CAD trajectories unsupported by observations from both workpieces.
+  filter_invisible_seams: true
+  visibility_support_radius: 0.007
+  min_visible_seam_length: 0.015
+  visibility_max_gap_points: 5
+  xyz_noise: [0.00015, 0.0012]
+  normal_noise_deg: [1.0, 10.0]
+  grazing_dropout_strength: 0.65
+  edge_noise: 0.0015
+  flying_point_probability: 0.02
+  pose_translation_noise: 0.001
+  pose_rotation_noise_deg: 0.6
+  point_dropout: [0.0, 0.22]
+  patch_dropout_probability: 0.30
+  normal_sign_flip_probability: 0.20
+train:
+  epochs: 200
+  batch_size: 2
+  workers: 4
+  output_dir: outputs/train_procedural

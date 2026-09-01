@@ -25,6 +25,9 @@ class ScanConfig:
     pose_rotation_noise_deg: float = 0.5
     point_dropout: tuple[float, float] = (0.0, 0.20)
     patch_dropout_probability: float = 0.35
+    view_mode: str = "multi"
+    single_view_probability: float = 0.0
+    azimuth_deg: tuple[float, float] = (0.0, 360.0)
 
 
 def _look_at(eye: np.ndarray, target: np.ndarray, up_hint: np.ndarray) -> np.ndarray:
@@ -83,11 +86,16 @@ def scan_assembly(assembly: Assembly, config: ScanConfig, rng: np.random.Generat
         geometry_id = scene.add_triangles(tensor_mesh)
         geometry_to_instance[int(geometry_id)] = mesh.instance_id
 
-    n_views = int(rng.integers(config.num_views[0], config.num_views[1] + 1))
+    if config.view_mode not in ("single", "multi", "mixed"):
+        raise ValueError(f"Unsupported view_mode: {config.view_mode}")
+    single_view = config.view_mode == "single" or (config.view_mode == "mixed" and rng.random() < config.single_view_probability)
+    n_views = 1 if single_view else int(rng.integers(config.num_views[0], config.num_views[1] + 1))
     coords: list[np.ndarray] = []
     normals: list[np.ndarray] = []
     instances: list[np.ndarray] = []
     view_ids: list[np.ndarray] = []
+    camera_origins: list[np.ndarray] = []
+    camera_extrinsics: list[np.ndarray] = []
     center = np.mean(np.concatenate([m.vertices for m in assembly.meshes]), axis=0)
 
     intrinsic = np.array(
@@ -96,7 +104,7 @@ def scan_assembly(assembly: Assembly, config: ScanConfig, rng: np.random.Generat
          [0, 0, 1]], dtype=np.float32,
     )
     for view_id in range(n_views):
-        azimuth = rng.uniform(0, 2 * np.pi)
+        azimuth = np.deg2rad(rng.uniform(*config.azimuth_deg))
         elevation = np.deg2rad(rng.uniform(*config.elevation_deg))
         distance = rng.uniform(*config.camera_distance)
         eye = center + distance * np.array(
@@ -104,6 +112,8 @@ def scan_assembly(assembly: Assembly, config: ScanConfig, rng: np.random.Generat
         )
         extrinsic = _look_at(eye, center, np.array([0.0, 0.0, 1.0]))
         extrinsic = _perturb_extrinsic(extrinsic, rng, config.pose_translation_noise, config.pose_rotation_noise_deg)
+        camera_origins.append(eye.astype(np.float32))
+        camera_extrinsics.append(extrinsic.astype(np.float32))
         rays = scene.create_rays_pinhole(
             o3d.core.Tensor(intrinsic), o3d.core.Tensor(extrinsic), config.width, config.height
         )
@@ -161,4 +171,7 @@ def scan_assembly(assembly: Assembly, config: ScanConfig, rng: np.random.Generat
         "raw_normal": raw_normal.astype(np.float32),
         "raw_instance_id": raw_instance.astype(np.int32),
         "raw_view_id": view_id.astype(np.int16),
+        "camera_origins": np.stack(camera_origins).astype(np.float32),
+        "camera_extrinsics": np.stack(camera_extrinsics).astype(np.float32),
+        "num_rendered_views": np.array(n_views, dtype=np.int16),
     }

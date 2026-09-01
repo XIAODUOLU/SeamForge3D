@@ -1,9 +1,10 @@
 # SeamForge3D
 
 SeamForge3D learns weld-seam fields from fused `XYZ + Normal` point clouds and
-recovers ordered 3D robot trajectories. The current reference dataset contains
-a base plate, a vertical web, and two open fillet seams. It supports offline NPZ
-generation and dynamic raycast generation with sensor/pose/noise augmentation.
+recovers ordered 3D robot trajectories. It includes a fixed T-joint audit set
+and a dimension-randomized procedural library covering straight profiles and
+closed circular contacts. Both offline NPZ generation and epoch-varying dynamic
+raycast generation support sensor, pose, occlusion, and dropout augmentation.
 
 The network predicts seam heat, metric centerline offset, unoriented tangent,
 part embedding, endpoint heat, and junction heat. A topology-aware graph stage
@@ -47,6 +48,35 @@ python tools/infer.py --config configs/overfit_two_meshes.yaml \
   --probability-threshold 0.95
 pytest -q
 ```
+
+For the generalized procedural dataset and separate lifecycle entry points:
+
+```bash
+# Triangle prism, cylinder, cone, I-beam, angle, box, and T-joint scenes.
+CONFIG=configs/large_procedural.yaml bash scripts/generate_data.sh
+
+# Training performs validation after every epoch and writes best.pt by val loss.
+CONFIG=configs/large_procedural.yaml DEVICE=cpu BACKBONE=randlanet \
+  OUTPUT_DIR=outputs/train_procedural bash scripts/train.sh
+
+# CUDA/Utonia combination.
+CONDA_ENV=seamforge3d-cuda CONFIG=configs/large_procedural.yaml DEVICE=cuda \
+  BACKBONE=utonia INIT_CHECKPOINT=weights/utonia.pth AMP=1 \
+  OUTPUT_DIR=outputs/train_procedural_utonia bash scripts/train.sh
+
+# Tune checkpoint/threshold on val, then evaluate the frozen test split.
+MODEL=outputs/train_procedural/best.pt bash scripts/validate.sh
+MODEL=outputs/train_procedural/best.pt bash scripts/test.sh
+
+# One-scene inference.
+MODEL=outputs/train_procedural/best.pt \
+  INPUT=outputs/procedural_dataset/test/scene_000000.npz bash scripts/infer.sh
+```
+
+All script parameters are documented at the top of the corresponding Bash
+file and can be combined through environment variables. Viewpoint modes and
+the two-workpiece visibility rule are described in
+[docs/data_generation.md](docs/data_generation.md).
 
 `--device auto|cpu|cuda` controls runtime placement. For a strict memorization
 audit, `tools/train.py` also accepts `--train-scenes 1 --train-start-index 2`.

@@ -2,8 +2,23 @@ seed: 20260831
 data:
   root: outputs/dataset
   dynamic: false
+  dynamic_val: false
+  dynamic_test: false
   train_scenes: 64
   val_scenes: 8
+  test_scenes: 8
+  assembly_generator: seed_t_joint
+  assembly_families: [t_joint]
+  balanced_family_sampling: false
+  seam_samples: 321
+  view_mode: multi
+  single_view_probability: 0.0
+  azimuth_deg: [0.0, 360.0]
+  elevation_deg: [18.0, 72.0]
+  camera_distance: [0.25, 0.42]
+  fov_deg: 60.0
+  assembly_rotation_mode: full
+  assembly_max_translation: 0.04
   num_views: [8, 16]
   image_width: 320
   image_height: 240
@@ -20,6 +35,10 @@ data:
   point_dropout: [0.0, 0.20]
   patch_dropout_probability: 0.35
   normal_sign_flip_probability: 0.25
+  filter_invisible_seams: false
+  visibility_support_radius: 0.007
+  min_visible_seam_length: 0.015
+  visibility_max_gap_points: 5
 model:
   backbone:
     name: randlanet

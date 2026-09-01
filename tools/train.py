@@ -84,6 +84,11 @@ def main() -> None:
     parser.add_argument("--train-start-index", type=int, help="First offline scene used by an overfit audit")
     parser.add_argument("--val-scenes", type=int, help="Limit the validation split")
     parser.add_argument("--output-dir", help="Override train.output_dir")
+    parser.add_argument("--resume", help="Resume model, optimizer, scheduler and scaler from a training checkpoint")
+    parser.add_argument("--batch-size", type=int, help="Override train.batch_size")
+    parser.add_argument("--workers", type=int, help="Override train.workers")
+    parser.add_argument("--learning-rate", type=float, help="Override task-head/main learning rate")
+    parser.add_argument("--amp", action=argparse.BooleanOptionalAction, default=None, help="Enable/disable CUDA mixed precision")
     args = parser.parse_args()
     cfg = load_config(args.config)
     if args.backbone:
@@ -101,6 +106,16 @@ def main() -> None:
         cfg["data"]["val_scenes"] = args.val_scenes
     if args.output_dir:
         cfg["train"]["output_dir"] = args.output_dir
+    if args.resume:
+        cfg["train"]["resume"] = args.resume
+    if args.batch_size:
+        cfg["train"]["batch_size"] = args.batch_size
+    if args.workers is not None:
+        cfg["train"]["workers"] = args.workers
+    if args.learning_rate:
+        cfg["train"]["learning_rate"] = args.learning_rate
+    if args.amp is not None:
+        cfg["train"]["amp"] = args.amp
     device = resolve_device(args.device)
     if device.type == "cpu" and cfg["model"]["backbone"]["name"] == "utonia":
         cfg["model"]["backbone"]["utonia"]["use_flash_attention"] = False
@@ -135,8 +150,10 @@ def main() -> None:
         model.load_state_dict(state["model"]); optimizer.load_state_dict(state["optimizer"])
         scheduler.load_state_dict(state["scheduler"]); scaler.load_state_dict(state["scaler"])
         start_epoch = int(state["epoch"]) + 1
+        best = float(state.get("metrics", {}).get("val", {}).get("total", best))
     log_path = output / "metrics.jsonl"
     for epoch in range(start_epoch, int(cfg["train"]["epochs"])):
+        train_set.set_epoch(epoch)
         train_metrics = epoch_pass(model, train_loader, criterion, device, optimizer, scaler, float(cfg["train"]["grad_clip"]), bool(cfg["train"]["amp"]))
         val_metrics = epoch_pass(model, val_loader, criterion, device, amp=bool(cfg["train"]["amp"]))
         scheduler.step()

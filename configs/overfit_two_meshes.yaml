@@ -5,6 +5,7 @@ data:
   dynamic: false
   train_scenes: 8
   val_scenes: 2
+  test_scenes: 2
   num_views: [12, 16]
   image_width: 320
   image_height: 240

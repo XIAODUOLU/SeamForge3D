@@ -1,0 +1,14 @@
+_base_: large_procedural.yaml
+data:
+  root: outputs/procedural_smoke
+  train_scenes: 7
+  val_scenes: 2
+  test_scenes: 2
+  view_mode: single
+  single_view_probability: 1.0
+  image_width: 240
+  image_height: 180
+train:
+  epochs: 2
+  workers: 0
+  output_dir: outputs/procedural_smoke_train

@@ -60,8 +60,9 @@ def build_seam_labels(points: np.ndarray, seams: tuple[SeamCurve, ...], sigma: f
     heat = np.exp(-(distance ** 2) / (2 * sigma ** 2))
     heat[distance > supervision_radius] = 0.0
 
-    endpoints = np.concatenate([np.stack((s.points[0], s.points[-1])) for s in seams if s.topology == "open"], axis=0)
-    if len(endpoints):
+    endpoint_groups = [np.stack((s.points[0], s.points[-1])) for s in seams if s.topology == "open"]
+    if endpoint_groups:
+        endpoints = np.concatenate(endpoint_groups, axis=0)
         endpoint_distance = np.linalg.norm(points[:, None, :] - endpoints[None, :, :], axis=-1).min(axis=1)
         endpoint_heat = np.exp(-(endpoint_distance ** 2) / (2 * sigma ** 2))
     else:
@@ -75,14 +76,18 @@ def build_seam_labels(points: np.ndarray, seams: tuple[SeamCurve, ...], sigma: f
     )
 
 
-def encode_seams(seams: tuple[SeamCurve, ...]) -> dict[str, np.ndarray]:
+def encode_seams(seams: tuple[SeamCurve, ...], prefix: str = "seam_") -> dict[str, np.ndarray]:
     lengths = np.array([len(seam.points) for seam in seams], dtype=np.int32)
     offsets = np.r_[0, np.cumsum(lengths)].astype(np.int32)
+    points = np.concatenate([seam.points for seam in seams], axis=0).astype(np.float32) if seams else np.empty((0, 3), dtype=np.float32)
+    pairs = np.array([seam.part_pair for seam in seams], dtype=np.int32).reshape(-1, 2)
     return {
-        "seam_points": np.concatenate([seam.points for seam in seams], axis=0).astype(np.float32),
-        "seam_offsets": offsets,
-        "seam_topology": np.array([0 if seam.topology == "open" else 1 for seam in seams], dtype=np.int8),
-        "seam_part_pairs": np.array([seam.part_pair for seam in seams], dtype=np.int32),
-        "seam_trajectory_ids": np.array([seam.trajectory_id for seam in seams], dtype=np.int32),
+        f"{prefix}points": points,
+        f"{prefix}offsets": offsets,
+        f"{prefix}topology": np.array([0 if seam.topology == "open" else 1 for seam in seams], dtype=np.int8),
+        f"{prefix}part_pairs": pairs,
+        f"{prefix}trajectory_ids": np.array([seam.trajectory_id for seam in seams], dtype=np.int32),
+        f"{prefix}source_ids": np.array([
+            seam.trajectory_id if seam.source_trajectory_id is None else seam.source_trajectory_id for seam in seams
+        ], dtype=np.int32),
     }
-

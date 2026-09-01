@@ -1,0 +1,16 @@
+_base_: large_procedural.yaml
+data:
+  root: outputs/fixed_view_dataset
+  train_scenes: 64
+  val_scenes: 8
+  test_scenes: 8
+  view_mode: single
+  single_view_probability: 1.0
+  # Degenerate ranges reproduce one camera direction exactly before pose noise.
+  azimuth_deg: [45.0, 45.0]
+  elevation_deg: [35.0, 35.0]
+  camera_distance: [0.34, 0.34]
+  assembly_rotation_mode: none
+  assembly_max_translation: 0.0
+  pose_translation_noise: 0.0
+  pose_rotation_noise_deg: 0.0

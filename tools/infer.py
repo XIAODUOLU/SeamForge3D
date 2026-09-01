@@ -9,9 +9,6 @@ from pathlib import Path
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/seamforge3d-matplotlib")
 os.environ.setdefault("XDG_CACHE_HOME", "/tmp/seamforge3d-cache")
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -23,20 +20,7 @@ from seamforge3d.postprocess.dense_refine import refine_trajectory_on_dense_clou
 from seamforge3d.postprocess.export import export_trajectories
 from seamforge3d.postprocess.reconstruct import ReconstructionConfig, SeamGraphReconstructor
 from seamforge3d.runtime import move_batch, resolve_device
-
-
-def plot_prediction(sample, probability, trajectories, output):
-    coord = sample["coord"]
-    figure = plt.figure(figsize=(12, 9)); axis = figure.add_subplot(111, projection="3d")
-    scatter = axis.scatter(*coord.T, c=probability, cmap="turbo", s=2, vmin=0, vmax=1, alpha=0.8)
-    for trajectory in trajectories:
-        axis.plot(*trajectory.points.T, linewidth=3, label=f"pred {trajectory.trajectory_id} ({trajectory.topology})")
-    offsets = sample["seam_offsets"]
-    for index in range(len(offsets) - 1):
-        seam = sample["seam_points"][offsets[index]:offsets[index + 1]]
-        axis.plot(*seam.T, "k--", linewidth=1.5, label="GT" if index == 0 else None)
-    figure.colorbar(scatter, ax=axis, label="Predicted seam probability")
-    axis.legend(); figure.tight_layout(); figure.savefig(output, dpi=180); plt.close(figure)
+from seamforge3d.visualization import visualize_prediction
 
 
 def main():
@@ -86,7 +70,7 @@ def main():
                 trajectory.confidence *= float(0.5 + 0.5 * refine_confidence.mean())
     output_dir = Path(args.output); export_trajectories(output_dir, trajectories)
     probability = torch.sigmoid(output["seam_logit"]).cpu().numpy()
-    plot_prediction(sample, probability, trajectories, output_dir / "prediction.png")
+    visualize_prediction(sample, probability, trajectories, output_dir / "prediction.png")
     gt = [sample["seam_points"][sample["seam_offsets"][i]:sample["seam_offsets"][i + 1]] for i in range(len(sample["seam_offsets"]) - 1)]
     metrics = {**seam_field_metrics(prediction, sample), **trajectory_metrics([t.points for t in trajectories], gt)}
     (output_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
